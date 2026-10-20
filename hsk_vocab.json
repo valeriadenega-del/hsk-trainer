@@ -1,0 +1,18 @@
+[
+  { "id": 1, "hanzi": "爱", "py": "ài", "ru": "любить", "en": "to love", "level": 1 },
+  { "id": 2, "hanzi": "八", "py": "bā", "ru": "восемь", "en": "eight", "level": 1 },
+  { "id": 3, "hanzi": "北京", "py": "Běijīng", "ru": "Пекин", "en": "Beijing", "level": 1 },
+  
+  { "id": 151, "hanzi": "吧", "py": "ba", "ru": "частица (побуждение/догадка)", "en": "particle", "level": 2 },
+  { "id": 152, "hanzi": "白", "py": "bái", "ru": "белый", "en": "white", "level": 2 },
+  { "id": 153, "hanzi": "百", "py": "bǎi", "ru": "сто", "en": "hundred", "level": 2 },
+  
+  { "id": 301, "hanzi": "阿姨", "py": "āyí", "ru": "тетя", "en": "aunt", "level": 3 },
+  { "id": 302, "hanzi": "啊", "py": "a", "ru": "ах! (частица)", "en": "ah", "level": 3 },
+  { "id": 303, "hanzi": "矮", "py": "ǎi", "ru": "низкий (о росте)", "en": "short", "level": 3 },
+  
+  { "id": 601, "hanzi": "爱情", "py": "àiqíng", "ru": "любовь (чувство)", "en": "romance/love", "level": 4 },
+  { "id": 602, "hanzi": "安排", "py": "ānpái", "ru": "планировать / расписание", "en": "to arrange", "level": 4 },
+  { "id": 603, "hanzi": "安全", "py": "ānquán", "ru": "безопасный", "en": "safe", "level": 4 },
+  { "id": 604, "hanzi": "文学", "py": "wénxué", "ru": "литература", "en": "literature", "level": 4 }
+]
