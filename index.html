@@ -1,1 +1,289 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HSK 4: Тренажер иероглифов</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: #f5f5f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            text-align: center;
+            width: 95%;
+            max-width: 500px;
+        }
+        header { margin-bottom: 15px; min-height: 70px; }
+        #word-ru { font-size: 24px; font-weight: bold; color: #2c2c2c; }
+        #word-en { font-size: 16px; color: #8c8c8c; }
+        
+        #word-hint { 
+            font-size: 22px; 
+            color: #4a5d4e; 
+            margin-top: 5px; 
+            font-weight: bold;
+        }
+        #feedback-message {
+            font-size: 14px;
+            color: #e07a5f;
+            margin-top: 5px;
+            min-height: 20px;
+        }
+        #memory-badge {
+            font-size: 12px;
+            color: #b0b0b0;
+            margin-top: 5px;
+        }
+        
+        .hidden { display: none !important; }
+        
+        .character-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            min-height: 150px;
+        }
+        
+        .character-box {
+            border: 2px dashed #dcdcdc;
+            border-radius: 8px;
+            background-color: #fafafa;
+            touch-action: none;
+            cursor: crosshair;
+            opacity: 0.4;
+            transition: 0.3s;
+        }
+        
+        .character-box.active {
+            border-color: #81b29a;
+            opacity: 1;
+        }
+
+        .character-box svg path {
+            stroke-width: 12px !important;
+            stroke-linejoin: round;
+            stroke-linecap: round;
+        }
+        
+        .controls { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .controls button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            color: white;
+            transition: 0.2s;
+        }
+        
+        #btn-show { background-color: #4a5d4e; width: 100%; }
+        #btn-show:hover { background-color: #3b4a3e; }
+        
+        #btn-fail { background-color: #e07a5f; flex-grow: 1; }
+        #btn-fail:hover { background-color: #c96d55; }
+        
+        #btn-pass { background-color: #81b29a; flex-grow: 1; }
+        #btn-pass:hover { background-color: #709c87; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div id="word-ru">Загрузка...</div>
+            <div id="word-en">Loading...</div>
+            <div id="feedback-message"></div>
+            <div id="word-hint" class="hidden"></div>
+            <div id="memory-badge" class="hidden"></div>
+        </header>
+        
+        <main>
+            <div id="character-container" class="character-container"></div>
+        </main>
+
+        <nav class="controls">
+            <button id="btn-show" class="hidden">Показать ответ (Сдаюсь)</button>
+            <button id="btn-fail" class="hidden">Не помню / Ошибся</button>
+            <button id="btn-pass" class="hidden">Помню отлично</button>
+        </nav>
+    </div>
+
+    <script>
+        let allWords = []; 
+        let currentWord = {};
+        let currentWriters = [];
+
+        // Умная загрузка из внешнего файла JSON + локальной памяти
+        async function loadDictionary() {
+            document.getElementById('word-ru').innerText = "Загрузка базы данных...";
+            
+            try {
+                // 1. Скачиваем актуальный словарь (чтобы видеть новые слова)
+                const response = await fetch('./hsk_vocab.json');
+                if (!response.ok) throw new Error("Файл словаря не найден");
+                const externalDict = await response.json();
+                
+                // 2. Берем сохраненный прогресс из памяти браузера
+                const savedData = localStorage.getItem('hsk_progress');
+                const progressMap = savedData ? JSON.parse(savedData) : {};
+                
+                // 3. Объединяем словарь и прогресс
+                allWords = externalDict.map(word => {
+                    return {
+                        ...word,
+                        memory_level: progressMap[word.id] || 0
+                    };
+                });
+                
+                showNextWord();
+            } catch (error) {
+                console.error("Ошибка загрузки:", error);
+                document.getElementById('word-ru').innerText = "Ошибка загрузки!";
+                document.getElementById('word-en').innerText = "Создайте файл hsk_vocab.json на GitHub";
+            }
+        }
+
+        function saveProgress() {
+            // Сохраняем только ID слова и его уровень памяти, чтобы экономить место
+            const progressMap = {};
+            allWords.forEach(w => progressMap[w.id] = w.memory_level);
+            localStorage.setItem('hsk_progress', JSON.stringify(progressMap));
+        }
+
+        function showNextWord() {
+            if (allWords.length === 0) return;
+
+            // Сортируем слова: сначала те, которые забыты (уровень 0)
+            allWords.sort((a, b) => (a.memory_level || 0) - (b.memory_level || 0));
+            
+            // Берем случайное слово из пула 5 самых неизученных
+            const poolSize = Math.min(5, allWords.length);
+            const randomIndex = Math.floor(Math.random() * poolSize);
+            currentWord = allWords[randomIndex];
+
+            document.getElementById('word-ru').innerText = currentWord.ru;
+            document.getElementById('word-en').innerText = currentWord.en;
+            document.getElementById('word-hint').innerText = `${currentWord.py}`;
+            
+            const lvl = currentWord.memory_level || 0;
+            document.getElementById('memory-badge').innerText = `Уровень памяти: ${lvl}`;
+            
+            document.getElementById('feedback-message').innerText = "";
+            document.getElementById('word-hint').classList.add('hidden');
+            document.getElementById('memory-badge').classList.add('hidden');
+            document.getElementById('btn-show').classList.remove('hidden');
+            document.getElementById('btn-fail').classList.add('hidden');
+            document.getElementById('btn-pass').classList.add('hidden');
+            
+            const container = document.getElementById('character-container');
+            container.innerHTML = ''; 
+            currentWriters = [];
+            
+            const chars = currentWord.hanzi.replace(/\s/g, '').split('');
+            const boxSize = chars.length === 1 ? 250 : (chars.length === 2 ? 150 : 100);
+
+            chars.forEach((char, index) => {
+                const box = document.createElement('div');
+                box.id = `char-box-${index}`;
+                box.className = 'character-box';
+                box.style.width = `${boxSize}px`;
+                box.style.height = `${boxSize}px`;
+                container.appendChild(box);
+
+                const writer = HanziWriter.create(box.id, char, {
+                    width: boxSize,
+                    height: boxSize,
+                    showCharacter: false,
+                    showOutline: false,
+                    leniency: 3.0, 
+                    showHintAfterMisses: 1, 
+                    drawingWidth: 15, // Толщина вашего стилуса
+                    padding: 5,
+                    strokeColor: '#1a1a1a',
+                    highlightColor: '#81b29a'
+                });
+                
+                currentWriters.push(writer);
+            });
+
+            startQuizForCharacter(0);
+        }
+
+        function startQuizForCharacter(index) {
+            if (index >= currentWriters.length) {
+                document.getElementById('feedback-message').style.color = "#81b29a";
+                document.getElementById('feedback-message').innerText = "Идеально! Оцените свою память.";
+                revealAnswer();
+                return;
+            }
+
+            currentWriters.forEach((w, i) => {
+                const box = document.getElementById(`char-box-${i}`);
+                if (i === index) {
+                    box.classList.add('active');
+                    document.getElementById('feedback-message').innerText = `Пишите иероглиф ${i + 1} из ${currentWriters.length}...`;
+                    document.getElementById('feedback-message').style.color = "#4a5d4e";
+                } else {
+                    box.classList.remove('active');
+                }
+            });
+
+            currentWriters[index].quiz({
+                onMistake: function(strokeData) {
+                    document.getElementById('feedback-message').style.color = "#e07a5f";
+                    document.getElementById('feedback-message').innerText = `Ошибка черты. Попыток: ${strokeData.mistakesOnStroke}`;
+                },
+                onComplete: function() {
+                    startQuizForCharacter(index + 1);
+                }
+            });
+        }
+
+        function revealAnswer() {
+            currentWriters.forEach(writer => {
+                writer.cancelQuiz();
+                writer.showCharacter({duration: 300}); 
+            });
+            
+            document.getElementById('word-hint').classList.remove('hidden');
+            document.getElementById('memory-badge').classList.remove('hidden');
+            document.getElementById('btn-show').classList.add('hidden');
+            document.getElementById('btn-fail').classList.remove('hidden');
+            document.getElementById('btn-pass').classList.remove('hidden');
+        }
+
+        document.getElementById('btn-show').addEventListener('click', revealAnswer);
+
+        function markWord(isRemembered) {
+            const currentLevel = currentWord.memory_level || 0;
+            currentWord.memory_level = isRemembered ? currentLevel + 1 : 0; 
+            
+            saveProgress();
+            showNextWord();
+        }
+
+        document.getElementById('btn-fail').addEventListener('click', () => markWord(false));
+        document.getElementById('btn-pass').addEventListener('click', () => markWord(true));
+
+        // Запуск приложения
+        loadDictionary();
+    </script>
+</body>
+</html>
 
