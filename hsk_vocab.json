@@ -15,7 +15,7 @@
   { "id": 602, "hanzi": "安排", "py": "ānpái", "ru": "планировать / расписание", "en": "to arrange", "level": 4 },
   { "id": 603, "hanzi": "安全", "py": "ānquán", "ru": "безопасный", "en": "safe", "level": 4 },
   { "id": 604, "hanzi": "文学", "py": "wénxué", "ru": "литература", "en": "literature", "level": 4 },
-    ,{ "id": 41, "hanzi": "尝", "py": "cháng", "ru": "пробовать (на вкус)", "en": "to taste", "level": 4 },
+  { "id": 41, "hanzi": "尝", "py": "cháng", "ru": "пробовать (на вкус)", "en": "to taste", "level": 4 },
   { "id": 42, "hanzi": "场", "py": "chǎng", "ru": "площадь, сцена, сеанс", "en": "field, place", "level": 4 },
   { "id": 43, "hanzi": "超过", "py": "chāoguò", "ru": "превышать, обгонять", "en": "to exceed", "level": 4 },
   { "id": 44, "hanzi": "吵", "py": "chǎo", "ru": "шуметь, ссориться", "en": "noisy, to quarrel", "level": 4 },
